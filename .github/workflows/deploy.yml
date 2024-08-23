@@ -14,9 +14,18 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
-    - name: Build crate
+    - name: Build rustman
       run: cargo build --verbose
     - name: Run tests
       run: cargo test --verbose
-    - name: Build site
+    - name: Build example
       run: cd example && ../target/debug/rustman build
+
+    - name: Publish to Cloudflare Pages
+      uses: cloudflare/pages-action@v1
+      with:
+        apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        projectName: ${{ vars.CLOUDFLARE_PROJECT_NAME }}
+        directory: build
+        workingDirectory: example
