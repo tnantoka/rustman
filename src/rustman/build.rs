@@ -1,5 +1,5 @@
-use std::fs;
 use std::error;
+use std::fs;
 use std::path::{Path, PathBuf};
 
 const CONTENTS_DIR: &str = "contents";
@@ -16,7 +16,12 @@ pub fn run() -> Result<(), Box<dyn error::Error>> {
     fs::create_dir_all(build_dir)?;
 
     for src_path in files {
-        if src_path.file_name().unwrap().to_string_lossy().starts_with('.') {
+        if src_path
+            .file_name()
+            .unwrap()
+            .to_string_lossy()
+            .starts_with('.')
+        {
             continue;
         }
 

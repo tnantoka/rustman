@@ -15,7 +15,7 @@ fn main() -> Result<(), Box<dyn error::Error>> {
                 return Err("Usage: rustman new <project-name>".into());
             }
             rustman::new::run(args[2].as_str())?;
-        },
+        }
         "build" => rustman::build::run()?,
         _ => return Err(format!("Unknown command: {}", args[1]).into()),
     }
