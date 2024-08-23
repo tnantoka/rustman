@@ -7,6 +7,11 @@ use std::path::{Path, PathBuf};
 const CONTENTS_DIR: &str = "contents";
 const BUILD_DIR: &str = "build";
 
+struct File {
+    path: PathBuf,
+    title: String,
+}
+
 pub fn run() -> Result<(), Box<dyn error::Error>> {
     let contents_dir = Path::new(CONTENTS_DIR);
     let build_dir = Path::new(BUILD_DIR);
@@ -17,9 +22,8 @@ pub fn run() -> Result<(), Box<dyn error::Error>> {
     fs::remove_dir_all(build_dir).ok();
     fs::create_dir_all(build_dir)?;
 
-    let posts = build_post_list(&files);
-
-    for src_path in files {
+    for file in &files {
+        let src_path = &file.path;
         let relative_path = src_path.strip_prefix(contents_dir)?;
         let is_md = src_path.extension() == Some("md".as_ref());
         let dst_path = if is_md {
@@ -34,28 +38,38 @@ pub fn run() -> Result<(), Box<dyn error::Error>> {
 
         if is_md {
             let markdown = if src_path.ends_with("index.md") {
-                build_index(fs::read_to_string(&src_path)?, &posts)
+                build_index(fs::read_to_string(src_path)?, &files)
             } else {
-                fs::read_to_string(&src_path)?
+                fs::read_to_string(src_path)?
             };
 
-            fs::write(&dst_path, render_markdown(&markdown))?;
+            let html = render_markdown(&markdown);
+            fs::write(&dst_path, render_layout(&file.title, html))?;
         } else {
-            fs::copy(&src_path, &dst_path)?;
+            fs::copy(src_path, &dst_path)?;
         }
     }
 
     Ok(())
 }
 
-fn list_files(dir: &Path, files: &mut Vec<PathBuf>) -> Result<(), Box<dyn error::Error>> {
+fn list_files(dir: &Path, files: &mut Vec<File>) -> Result<(), Box<dyn error::Error>> {
     for entry in fs::read_dir(dir)? {
         let path = entry?.path();
 
+        if path.file_name().unwrap().to_string_lossy().starts_with('.')
+            || path.ends_with("layout.html")
+        {
+            continue;
+        }
+
         if path.is_dir() {
             list_files(&path, files)?;
-        } else if !path.file_name().unwrap().to_string_lossy().starts_with('.') {
-            files.push(path);
+        } else {
+            files.push(File {
+                path: path.clone(),
+                title: read_title(&path),
+            });
         }
     }
 
@@ -69,37 +83,44 @@ fn render_markdown(src: &str) -> String {
     html_output
 }
 
-fn build_index(content: String, posts: &[PathBuf]) -> String {
-    let list = posts.iter().fold(String::new(), |mut acc, post| {
-        let title = fs::read_to_string(post)
-            .unwrap()
-            .lines()
-            .find(|line| line.starts_with("# "))
-            .unwrap()
-            .replace("# ", "");
-        let file_stem = post.file_stem().unwrap().to_string_lossy();
+fn render_layout(title: &str, content: String) -> String {
+    let layout = fs::read_to_string("contents/layout.html").unwrap();
+    layout
+        .replace("{{title}}", title)
+        .replace("{{content}}", &content)
+}
+
+fn build_index(content: String, files: &[File]) -> String {
+    let list = files.iter().fold(String::new(), |mut acc, file| {
+        let path = &file.path;
+
+        if !path.parent().unwrap().ends_with("posts") || path.extension() != Some("md".as_ref()) {
+            return acc;
+        }
+
+        let file_stem = path.file_stem().unwrap().to_string_lossy();
         let date = file_stem
             .split('-')
             .take(3)
             .collect::<Vec<&str>>()
             .join("-");
 
-        writeln!(acc, "- [{}](posts/{}.html) {}", title, file_stem, date).unwrap();
+        writeln!(acc, "- [{}](posts/{}.html) {}", file.title, file_stem, date).unwrap();
         acc
     });
 
     content.replace("{{posts}}", &list)
 }
 
-fn build_post_list(files: &[PathBuf]) -> Vec<PathBuf> {
-    files
-        .iter()
-        .filter_map(|path| {
-            if path.parent()?.ends_with("posts") && path.extension() == Some("md".as_ref()) {
-                Some(path.to_path_buf())
-            } else {
-                None
-            }
-        })
-        .collect()
+fn read_title(path: &PathBuf) -> String {
+    if path.extension() != Some("md".as_ref()) {
+        return String::new();
+    }
+
+    fs::read_to_string(path)
+        .unwrap()
+        .lines()
+        .find(|line| line.starts_with("# "))
+        .unwrap()
+        .replace("# ", "")
 }
