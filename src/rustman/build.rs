@@ -54,7 +54,6 @@ fn list_files(dir: &Path, files: &mut Vec<PathBuf>) -> Result<(), Box<dyn error:
 
         if path.is_dir() {
             list_files(&path, files)?;
-        // .始まりなら何もしない
         } else if !path.file_name().unwrap().to_string_lossy().starts_with('.') {
             files.push(path);
         }
@@ -70,22 +69,34 @@ fn render_markdown(src: &str) -> String {
     html_output
 }
 
-fn build_index(content: String, posts: &[String]) -> String {
+fn build_index(content: String, posts: &[PathBuf]) -> String {
     let list = posts.iter().fold(String::new(), |mut acc, post| {
-        writeln!(acc, "- [{}](posts/{}.html)", post, post).unwrap();
+        let title = fs::read_to_string(post)
+            .unwrap()
+            .lines()
+            .find(|line| line.starts_with("# "))
+            .unwrap()
+            .replace("# ", "");
+        let file_stem = post.file_stem().unwrap().to_string_lossy();
+        let date = file_stem
+            .split('-')
+            .take(3)
+            .collect::<Vec<&str>>()
+            .join("-");
+
+        writeln!(acc, "- [{}](posts/{}.html) {}", title, file_stem, date).unwrap();
         acc
     });
 
     content.replace("{{posts}}", &list)
 }
 
-fn build_post_list(files: &[PathBuf]) -> Vec<String> {
+fn build_post_list(files: &[PathBuf]) -> Vec<PathBuf> {
     files
         .iter()
         .filter_map(|path| {
             if path.parent()?.ends_with("posts") && path.extension() == Some("md".as_ref()) {
-                path.file_stem()
-                    .map(|stem| stem.to_string_lossy().to_string())
+                Some(path.to_path_buf())
             } else {
                 None
             }
