@@ -1,3 +1,4 @@
+use pulldown_cmark::{html, Options, Parser};
 use std::error;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -26,7 +27,8 @@ pub fn run() -> Result<(), Box<dyn error::Error>> {
         }
 
         let relative_path = src_path.strip_prefix(contents_dir).unwrap();
-        let dst_path = if src_path.extension() == Some("md".as_ref()) {
+        let is_md = src_path.extension() == Some("md".as_ref());
+        let dst_path = if is_md {
             build_dir.join(relative_path).with_extension("html")
         } else {
             build_dir.join(relative_path)
@@ -36,7 +38,11 @@ pub fn run() -> Result<(), Box<dyn error::Error>> {
             fs::create_dir_all(parent).ok();
         }
 
-        fs::copy(&src_path, &dst_path)?;
+        if is_md {
+            fs::write(&dst_path, render_markdown(&fs::read_to_string(&src_path)?))?;
+        } else {
+            fs::copy(&src_path, &dst_path)?;
+        }
     }
 
     Ok(())
@@ -54,4 +60,11 @@ fn list_files(dir: &Path, files: &mut Vec<PathBuf>) -> Result<(), Box<dyn error:
     }
 
     Ok(())
+}
+
+pub fn render_markdown(src: &str) -> String {
+    let parser = Parser::new_ext(src, Options::all());
+    let mut html_output = String::new();
+    html::push_html(&mut html_output, parser);
+    html_output
 }
