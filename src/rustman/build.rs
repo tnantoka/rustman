@@ -1,5 +1,6 @@
 use pulldown_cmark::{html, Options, Parser};
 use std::error;
+use std::fmt::Write;
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -16,17 +17,10 @@ pub fn run() -> Result<(), Box<dyn error::Error>> {
     fs::remove_dir_all(build_dir).ok();
     fs::create_dir_all(build_dir)?;
 
-    for src_path in files {
-        if src_path
-            .file_name()
-            .unwrap()
-            .to_string_lossy()
-            .starts_with('.')
-        {
-            continue;
-        }
+    let posts = build_post_list(&files);
 
-        let relative_path = src_path.strip_prefix(contents_dir).unwrap();
+    for src_path in files {
+        let relative_path = src_path.strip_prefix(contents_dir)?;
         let is_md = src_path.extension() == Some("md".as_ref());
         let dst_path = if is_md {
             build_dir.join(relative_path).with_extension("html")
@@ -39,7 +33,13 @@ pub fn run() -> Result<(), Box<dyn error::Error>> {
         }
 
         if is_md {
-            fs::write(&dst_path, render_markdown(&fs::read_to_string(&src_path)?))?;
+            let markdown = if src_path.ends_with("index.md") {
+                build_index(fs::read_to_string(&src_path)?, &posts)
+            } else {
+                fs::read_to_string(&src_path)?
+            };
+
+            fs::write(&dst_path, render_markdown(&markdown))?;
         } else {
             fs::copy(&src_path, &dst_path)?;
         }
@@ -54,7 +54,8 @@ fn list_files(dir: &Path, files: &mut Vec<PathBuf>) -> Result<(), Box<dyn error:
 
         if path.is_dir() {
             list_files(&path, files)?;
-        } else {
+        // .始まりなら何もしない
+        } else if !path.file_name().unwrap().to_string_lossy().starts_with('.') {
             files.push(path);
         }
     }
@@ -62,9 +63,32 @@ fn list_files(dir: &Path, files: &mut Vec<PathBuf>) -> Result<(), Box<dyn error:
     Ok(())
 }
 
-pub fn render_markdown(src: &str) -> String {
+fn render_markdown(src: &str) -> String {
     let parser = Parser::new_ext(src, Options::all());
     let mut html_output = String::new();
     html::push_html(&mut html_output, parser);
     html_output
+}
+
+fn build_index(content: String, posts: &[String]) -> String {
+    let list = posts.iter().fold(String::new(), |mut acc, post| {
+        writeln!(acc, "- [{}](posts/{}.html)", post, post).unwrap();
+        acc
+    });
+
+    content.replace("{{posts}}", &list)
+}
+
+fn build_post_list(files: &[PathBuf]) -> Vec<String> {
+    files
+        .iter()
+        .filter_map(|path| {
+            if path.parent()?.ends_with("posts") && path.extension() == Some("md".as_ref()) {
+                path.file_stem()
+                    .map(|stem| stem.to_string_lossy().to_string())
+            } else {
+                None
+            }
+        })
+        .collect()
 }
