@@ -1,0 +1,3 @@
+# Rustman
+
+{{posts}}
