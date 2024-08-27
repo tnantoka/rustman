@@ -28,3 +28,29 @@ pub fn run(name: &str) -> Result<(), Box<dyn error::Error>> {
 
     Ok(())
 }
+
+mod tests {
+    #[test]
+    fn test_run() {
+        let dir = std::env::temp_dir().join("new_test_run");
+        std::fs::remove_dir_all(&dir).ok();
+
+        let result = super::run(dir.as_path().to_str().unwrap());
+
+        assert!(result.is_ok());
+        assert!(std::path::Path::new(&dir).exists());
+    }
+
+    #[test]
+    fn test_run_already_exists() {
+        let dir = std::env::temp_dir().join("new_test_run_already_exists");
+        std::fs::create_dir(&dir).ok();
+
+        let result = super::run(dir.as_path().to_str().unwrap());
+
+        assert!(result.is_err());
+        assert_eq!(result.unwrap_err().to_string(), "Directory already exists");
+        println!("{:?}", dir);
+        assert!(!std::path::Path::new(&dir.join("contents")).exists());
+    }
+}

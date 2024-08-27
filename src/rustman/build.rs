@@ -124,3 +124,19 @@ fn read_title(path: &PathBuf) -> String {
         .unwrap()
         .replace("# ", "")
 }
+
+mod tests {
+    #[test]
+    fn test_run() {
+        let dir = std::env::temp_dir().join("build_test_run");
+        std::fs::remove_dir_all(&dir).ok();
+
+        super::super::new::run(dir.as_path().to_str().unwrap()).ok();
+
+        std::env::set_current_dir(&dir).ok();
+        let result = super::run();
+
+        assert!(result.is_ok());
+        assert!(std::path::Path::new(&dir.join("build")).exists());
+    }
+}
