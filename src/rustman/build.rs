@@ -1,4 +1,4 @@
-use pulldown_cmark::{html, Options, Parser};
+use pulldown_cmark::{html, Event, Options, Parser};
 use std::error;
 use std::fmt::Write;
 use std::fs;
@@ -18,6 +18,7 @@ pub fn run() -> Result<(), Box<dyn error::Error>> {
 
     let mut files = Vec::new();
     list_files(contents_dir, &mut files)?;
+    files.sort_by(|a, b| b.path.cmp(&a.path));
 
     fs::remove_dir_all(build_dir).ok();
     fs::create_dir_all(build_dir)?;
@@ -77,7 +78,10 @@ fn list_files(dir: &Path, files: &mut Vec<File>) -> Result<(), Box<dyn error::Er
 }
 
 fn render_markdown(src: &str) -> String {
-    let parser = Parser::new_ext(src, Options::all());
+    let parser = Parser::new_ext(src, Options::all()).map(|event| match event {
+        Event::SoftBreak => Event::HardBreak,
+        _ => event,
+    });
     let mut html_output = String::new();
     html::push_html(&mut html_output, parser);
     html_output
