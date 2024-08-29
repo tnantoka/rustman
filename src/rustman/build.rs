@@ -129,6 +129,7 @@ fn read_title(path: &PathBuf) -> String {
         .replace("# ", "")
 }
 
+#[cfg(test)]
 mod tests {
     #[test]
     fn test_run() {

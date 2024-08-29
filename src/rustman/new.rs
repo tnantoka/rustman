@@ -29,6 +29,7 @@ pub fn run(name: &str) -> Result<(), Box<dyn error::Error>> {
     Ok(())
 }
 
+#[cfg(test)]
 mod tests {
     #[test]
     fn test_run() {
