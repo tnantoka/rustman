@@ -7,6 +7,6 @@
 最初の自作プログラムとして、このサイトを生成するための静的サイトジェネレーターを作りました。
 
 ソースコードは↓です。
-https://github.com/tnantoka/rustman
+<https://github.com/tnantoka/rustman>
 
 いつまで続くかわかりませんが、このサイトに細かいメモなどを書いていこうと思います。

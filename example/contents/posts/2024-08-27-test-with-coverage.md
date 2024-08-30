@@ -1,6 +1,6 @@
 # テスト（カバレッジ付き）
 
-https://github.com/taiki-e/cargo-llvm-cov?tab=readme-ov-file#from-prebuilt-binaries
+<https://github.com/taiki-e/cargo-llvm-cov?tab=readme-ov-file#from-prebuilt-binaries>
 
 READMEに従ってインストールする。
 
