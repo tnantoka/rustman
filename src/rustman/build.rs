@@ -109,7 +109,12 @@ fn build_index(content: String, files: &[File]) -> String {
             .collect::<Vec<&str>>()
             .join("-");
 
-        writeln!(acc, "- [{}](posts/{}.html) {}", file.title, file_stem, date).unwrap();
+        writeln!(
+            acc,
+            "- [{}] [{}](posts/{}.html)",
+            date, file.title, file_stem
+        )
+        .unwrap();
         acc
     });
 

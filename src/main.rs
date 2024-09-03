@@ -10,7 +10,7 @@ fn main() -> Result<(), Box<dyn error::Error>> {
 fn run(
     run_new: impl Fn(&str) -> Result<(), Box<dyn error::Error>>,
     run_build: impl Fn() -> Result<(), Box<dyn error::Error>>,
-    args: &[String],    
+    args: &[String],
 ) -> Result<(), Box<dyn error::Error>> {
     if args.len() < 2 {
         return Err("Usage: rustman <command>".into());
@@ -80,7 +80,10 @@ mod tests {
         let args = vec!["rustman".to_string(), "new".to_string()];
         let result = run(|_| Ok(()), || Ok(()), &args);
         assert!(result.is_err());
-        assert_eq!(result.unwrap_err().to_string(), "Usage: rustman new <project-name>");
+        assert_eq!(
+            result.unwrap_err().to_string(),
+            "Usage: rustman new <project-name>"
+        );
     }
 
     #[test]
